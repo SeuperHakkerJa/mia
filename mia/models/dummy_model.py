@@ -1,2 +1,2 @@
-class Dummy():
+class Dummy:
     foo = 5
