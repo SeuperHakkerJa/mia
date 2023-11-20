@@ -1,13 +1,12 @@
-import numpy
+from typing import Callable
 
+import numpy
 from numpy.typing import ArrayLike
 from sklearn.base import BaseEstimator
 from sklearn.model_selection import ShuffleSplit
-from typing import Callable
 
 
 class Shadow(BaseEstimator):
-
     def __init__(self, factory: Callable, shadows: int = 20):
         self.factory = factory
         self.shadows = shadows
@@ -24,7 +23,7 @@ class Shadow(BaseEstimator):
 
             model = self.factory()
             model.fit(X_train, y_train)
-            
+
             self.models.append(model)
             self.inside.append(inside)
             self.outside.append(outside)
@@ -60,8 +59,7 @@ class Shadow(BaseEstimator):
             self.original.append(original)
 
         X_shadow = numpy.hstack(
-            np.hstack(self.original).reshape(-1, 1),
-            np.vstack(self.query)
+            np.hstack(self.original).reshape(-1, 1), np.vstack(self.query)
         )
 
         y_shadow = numpy.hstack(self.original)
