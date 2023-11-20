@@ -1,9 +1,11 @@
 import os
+import os.path as osp
 from typing import Optional, Tuple
-from mia import DATASET_DIR
 
 import numpy as np
 from sklearn.model_selection import train_test_split
+
+from mia import DATASET_DIR
 
 
 def split_dataset(
@@ -33,11 +35,15 @@ def split_dataset(
     np.random.seed(random_seed)
 
     # Load the npz file
-    data = np.load(npz_file_name)
+    data = np.load(osp.join(DATASET_DIR, npz_file_name))
 
     # Extract 'x' and 'y' data
     X = data["x"]
     y = data["y"]
+
+    # convert texas hospital label range from 1-100 to 0-99
+    if npz_file_name == "texas.npz":
+        y -= 1
 
     # Check if n_data is larger than the dataset size
     if n_data > X.shape[0]:
@@ -57,10 +63,8 @@ def split_dataset(
                 os.makedirs(logs_dir)
 
             # Save the indices
-            indices_file_path = os.path.join(
-                logs_dir,
-                f'selected_indices_{npz_file_name.replace("/", "_")}_{random_seed}.npz',
-            )
+            npz_file_basename = npz_file_name.split(".")[0]
+            indices_file_path = f'selected_indices_{npz_file_basename.replace("/", "_")}_{random_seed}.npz'
             np.savez(indices_file_path, indices=indices)
 
     X_selected = X[indices]
