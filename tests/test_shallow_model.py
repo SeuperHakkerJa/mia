@@ -8,6 +8,10 @@ class DummyModel:
     def fit(self, X, y, **kwargs):
         pass
 
+    def predict_proba(self, X):
+        # Dummy implementation, return random probabilities
+        return np.random.rand(len(X), 2)
+
 
 def test_initialization():
     bundle = ShadowModelBundle(DummyModel, 100, num_models=10, seed=123)
