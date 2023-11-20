@@ -26,7 +26,7 @@ def test_train_and_transform():
     y = np.random.randint(0, 2, 200)
 
     bundle = ShadowModelBundle(DummyModel, 50, num_models=4, seed=123)
-    X_transformed, y_transformed = bundle.train_and_transform(X, y)
+    X_transformed, y_transformed = bundle.fit_transform(X, y)
 
     assert (
         X_transformed.shape[0] == 4 * 50 * 2

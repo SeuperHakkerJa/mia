@@ -28,7 +28,7 @@ class ShadowModelBundle(BaseEstimator):
         self.serializer = serializer
         self._reset_random_state()
 
-    def train_and_transform(self, X, y, verbose=False, fit_kwargs=None):
+    def fit_transform(self, X, y, verbose=False, fit_kwargs=None):
         """
         Trains shadow models and generates a dataset for the attack model.
 
@@ -144,9 +144,6 @@ class ShadowModelBundle(BaseEstimator):
         else:
             return self.shadow_models_[model_index]
 
-import numpy as np
-from sklearn.base import BaseEstimator
-from tqdm import tqdm
 
 def prepare_attack_data(model, data_in, data_out):
     """
@@ -169,6 +166,7 @@ def prepare_attack_data(model, data_in, data_out):
     data = np.vstack([np.c_[y_hat_in, y_in], np.c_[y_hat_out, y_out]])
     return data, labels
 
+
 class AttackModelBundle(BaseEstimator):
     """
     A bundle of attack models for each class of the target model.
@@ -182,7 +180,9 @@ class AttackModelBundle(BaseEstimator):
 
     MODEL_ID_FMT = "attack_%d"
 
-    def __init__(self, model_fn, num_classes, serializer=None, class_one_hot_coded=True):
+    def __init__(
+        self, model_fn, num_classes, serializer=None, class_one_hot_coded=True
+    ):
         self.model_fn = model_fn
         self.num_classes = num_classes
         self.serializer = serializer
@@ -197,7 +197,7 @@ class AttackModelBundle(BaseEstimator):
         - verbose: Display progress bar (default=False).
         - fit_kwargs: Additional arguments for model fitting (default=None).
         """
-        X_classes = X[:, self.num_classes:]
+        X_classes = X[:, self.num_classes :]
         datasets_by_class = self._split_data_by_class(X, y, X_classes)
 
         self.attack_models_ = [] if self.serializer is None else None
@@ -218,7 +218,10 @@ class AttackModelBundle(BaseEstimator):
         """
         data_indices = np.arange(X_total.shape[0])
         return [
-            (X_total[self._get_class_indices(classes, i, data_indices)], y[self._get_class_indices(classes, i, data_indices)])
+            (
+                X_total[self._get_class_indices(classes, i, data_indices)],
+                y[self._get_class_indices(classes, i, data_indices)],
+            )
             for i in range(self.num_classes)
         ]
 
@@ -261,7 +264,7 @@ class AttackModelBundle(BaseEstimator):
         Array of predicted probabilities.
         """
         result = np.zeros((X.shape[0], 2))
-        shadow_preds, classes = X[:, :self.num_classes], X[:, self.num_classes:]
+        shadow_preds, classes = X[:, : self.num_classes], X[:, self.num_classes :]
         data_indices = np.arange(shadow_preds.shape[0])
 
         for i in range(self.num_classes):
