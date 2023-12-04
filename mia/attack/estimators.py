@@ -1,69 +1,110 @@
 import numpy
+import pandas
+import typing
 
 from numpy.typing import ArrayLike
+
 from sklearn.base import BaseEstimator
-from sklearn.model_selection import ShuffleSplit
-from typing import Callable
+from sklearn.model_selection import train_test_split, ShuffleSplit
 
 
-class Shadow(BaseEstimator):
+class MIA(BaseEstimator):
+    """
+    Membership Inference Attack (MIA) class using scikit-learn BaseEstimator.
 
-    def __init__(self, factory: Callable, shadows: int = 20):
+    Attributes:
+    - factory (typing.Callable[[], BaseEstimator]): A callable that creates an instance of the target model.
+    - shadows (int): Number of shadow models.
+    - categories (int): Number of categories in the target model's output.
+    - attack (BaseEstimator): Trained attack model.
+
+    Methods:
+    - fit(X: ArrayLike, y: ArrayLike) -> BaseEstimator: Fit the attack model using the specified dataset.
+    - predict(X: ArrayLike) -> ArrayLike: Make predictions using the trained attack model.
+    - score(X: ArrayLike, y: ArrayLike) -> ArrayLike: Score the attack model on the provided dataset.
+
+    Constants:
+    - SPLIT_SIZE (float): Default split size for shadow models, set to 0.25.
+    """
+
+    SPLIT_SIZE = 0.25
+
+    def __init__(
+        self,
+        factory: typing.Callable[[], BaseEstimator],
+        categories: int,
+        shadows: int = 20,
+    ):
+        """
+        Initialize the MIA instance.
+
+        Parameters:
+        - factory (typing.Callable[[], BaseEstimator]): A callable that creates an instance of the target model.
+        - categories (int): Number of categories in the target model's output.
+        - shadows (int, optional): Number of shadow models to train. Defaults to 20.
+        """
         self.factory = factory
         self.shadows = shadows
+        self.categories = categories
 
-    def fit(self, X: ArrayLike, y: ArrayLike) -> Shadow:
-        self.models = []
-        self.inside = []
-        self.outside = []
+    def fit(self, X: ArrayLike, y: ArrayLike) -> BaseEstimator:
+        """
+        Fit the MIA attack model using the specified dataset.
 
-        iterator = ShuffleSplit(n_splits=self.shadows, test_size=0.5)
+        Parameters:
+        - X (ArrayLike): Input features.
+        - y (ArrayLike): Target labels.
 
-        for inside, outside in iterator.split(X):
-            X_train, y_train = X[inside], y[inside]
+        Returns:
+        - self (BaseEstimator): Fitted MIA instance.
+        """
+        iterator = ShuffleSplit(
+            n_splits=self.shadows,
+            test_size=self.SPLIT_SIZE,
+            train_size=self.SPLIT_SIZE,
+        )
 
-            model = self.factory()
-            model.fit(X_train, y_train)
-            
-            self.models.append(model)
-            self.inside.append(inside)
-            self.outside.append(outside)
+        X_shadow = numpy.empty((0, self.categories))
+        y_shadow = numpy.empty((0,))
 
-        self.X_fit_ = X
-        self.y_fit_ = y
+        for inside_index, outside_index in iterator.split(X):
+            X_train, y_train = X[inside_index], y[inside_index]
+            model = self.factory().fit(X_train, y_train)
+
+            inside_predictions = model.predict_proba(X[inside_index])
+            outside_predictions = model.predict_proba(X[outside_index])
+
+            inside_labels = numpy.zeros(inside_predictions.shape[0])
+            outside_labels = numpy.ones(outside_predictions.shape[0])
+
+            X_shadow = numpy.vstack([X_shadow, inside_predictions, outside_predictions])
+            y_shadow = numpy.hstack([y_shadow, inside_labels, outside_labels])
+
+        self.attack = self.factory().fit(X_shadow, y_shadow)
 
         return self
 
-    def transform(self) -> tuple[ArrayLike, ArrayLike]:
-        self.query = []
-        self.labels = []
-        self.original = []
+    def predict(self, X: ArrayLike) -> ArrayLike:
+        """
+        Make predictions using the trained attack model.
 
-        iterator = zip(self.model, self.inside, self.outside)
+        Parameters:
+        - X (ArrayLike): Input features.
 
-        for model, inside, outside in iterator:
-            inside_predictions = model.predict_proba(inside)
-            outside_predictions = mode.predict_proba(outside)
+        Returns:
+        - predictions (ArrayLike): Model predictions.
+        """
+        return self.attack(X)
 
-            inside_labels = numpy.zeros(inside_predictions.shape[0])
-            outside_labels = numpy.ones(outside_labels.shape[0])
+    def score(self, X: ArrayLike, y: ArrayLike) -> ArrayLike:
+        """
+        Score the attack model on the provided dataset.
 
-            inside_original = self.y_fit_[inside]
-            outside_original = self.y_fit_[outside]
+        Parameters:
+        - X (ArrayLike): Input features.
+        - y (ArrayLike): Target labels.
 
-            query = numpy.vstack([inside_predictions, outside_predictions])
-            labels = np.hstack([inside_labels, outside_labels])
-            original = np.hstack([inside_original, outside_original])
-
-            self.query.append(query)
-            self.labels.append(labels)
-            self.original.append(original)
-
-        X_shadow = numpy.hstack(
-            np.hstack(self.original).reshape(-1, 1),
-            np.vstack(self.query)
-        )
-
-        y_shadow = numpy.hstack(self.original)
-
-        return X_shadow, y_shadow
+        Returns:
+        - scores (ArrayLike): Model scores.
+        """
+        return self.attack.score(X, y)
