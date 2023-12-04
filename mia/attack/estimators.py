@@ -1,11 +1,17 @@
+
 import numpy
 import pandas
 import typing
+from typing import Callable
 
+
+import numpy
 from numpy.typing import ArrayLike
 
 from sklearn.base import BaseEstimator
 from sklearn.model_selection import train_test_split, ShuffleSplit
+from sklearn.base import BaseEstimator
+from sklearn.model_selection import ShuffleSplit
 
 
 class MIA(BaseEstimator):
@@ -43,6 +49,7 @@ class MIA(BaseEstimator):
         - categories (int): Number of categories in the target model's output.
         - shadows (int, optional): Number of shadow models to train. Defaults to 20.
         """
+
         self.factory = factory
         self.shadows = shadows
         self.categories = categories
@@ -63,6 +70,7 @@ class MIA(BaseEstimator):
             test_size=self.SPLIT_SIZE,
             train_size=self.SPLIT_SIZE,
         )
+
 
         X_shadow = numpy.empty((0, self.categories))
         y_shadow = numpy.empty((0,))
@@ -99,6 +107,7 @@ class MIA(BaseEstimator):
     def score(self, X: ArrayLike, y: ArrayLike) -> ArrayLike:
         """
         Score the attack model on the provided dataset.
+
 
         Parameters:
         - X (ArrayLike): Input features.

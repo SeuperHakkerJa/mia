@@ -1,14 +1,11 @@
-# Byte-compiled / optimized / DLL files
+# common cache
 __pycache__/
 *.py[cod]
-
-
-# VSCode settings
 .vscode/
-
-# Operating System specific files
 .DS_Store  # For macOS
 Thumbs.db  # For Windows
-
-# Python interactive session saved data
 *.pyi
+
+# dataset 
+datasets/*.npz
+datasets/*.zip
